@@ -121,6 +121,21 @@ async def test_geo_location_suggested_object_id_uses_configured_prefix(
     assert geo.suggested_object_id == "signalk_navigation_position"
 
 
+async def test_geo_location_suggested_object_id_uses_default_when_prefix_empty(
+    hass, enable_custom_integrations
+) -> None:
+    entry = _make_entry()
+    entry.add_to_hass(hass)
+
+    discovery = SimpleNamespace(data=DiscoveryResult(entities=[], conflicts=[]))
+    coordinator = SignalKCoordinator(hass, entry, Mock(), Mock(), SignalKAuthManager(None))
+    coordinator._state = ConnectionState.CONNECTED
+
+    geo = SignalKPositionGeolocation(coordinator, discovery, entry)
+
+    assert geo.suggested_object_id == "Position"
+
+
 async def test_geo_location_unavailable_when_stale(hass, enable_custom_integrations) -> None:
     entry = _make_entry()
     entry.add_to_hass(hass)

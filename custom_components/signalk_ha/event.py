@@ -97,6 +97,8 @@ class SignalKNotificationEvent(CoordinatorEntity, EventEntity):
 
     @property
     def suggested_object_id(self) -> str | None:
+        if not self._entity_id_prefix:
+            return super().suggested_object_id
         return self._suggested_object_id
 
     @property

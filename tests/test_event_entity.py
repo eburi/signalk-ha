@@ -174,6 +174,16 @@ async def test_event_entity_suggested_object_id_uses_configured_prefix(hass) -> 
     assert entity.suggested_object_id == "signalk_notifications_navigation_anchor"
 
 
+async def test_event_entity_suggested_object_id_uses_default_when_prefix_empty(hass) -> None:
+    entry = _make_entry()
+    coordinator = SignalKCoordinator(hass, entry, Mock(), Mock(), SignalKAuthManager(None))
+    coordinator._state = ConnectionState.CONNECTED
+
+    entity = SignalKNotificationEvent(coordinator, entry, "notifications.navigation.anchor")
+
+    assert entity.suggested_object_id == "Navigation Anchor Notification"
+
+
 async def test_event_setup_skips_when_notifications_disabled(hass) -> None:
     entry = _make_entry(
         options={
