@@ -7,6 +7,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.signalk_ha.auth import SignalKAuthManager
 from custom_components.signalk_ha.const import (
     CONF_BASE_URL,
+    CONF_ENTITY_ID_PREFIX,
     CONF_ENABLE_NOTIFICATIONS,
     CONF_HOST,
     CONF_NOTIFICATION_PATHS,
@@ -148,6 +149,29 @@ async def test_event_entity_available_respects_notifications_toggle(hass) -> Non
 
     entity = SignalKNotificationEvent(coordinator, entry, "notifications.navigation.anchor")
     assert entity.available is False
+
+
+async def test_event_entity_suggested_object_id_uses_configured_prefix(hass) -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_HOST: "sk.local",
+            CONF_PORT: 3000,
+            CONF_SSL: False,
+            CONF_VERIFY_SSL: True,
+            CONF_BASE_URL: "http://sk.local:3000/signalk/v1/api/",
+            CONF_WS_URL: "ws://sk.local:3000/signalk/v1/stream?subscribe=none",
+            CONF_VESSEL_ID: "mmsi:261006533",
+            CONF_VESSEL_NAME: "ONA",
+            CONF_ENTITY_ID_PREFIX: "signalk_",
+        },
+    )
+    coordinator = SignalKCoordinator(hass, entry, Mock(), Mock(), SignalKAuthManager(None))
+    coordinator._state = ConnectionState.CONNECTED
+
+    entity = SignalKNotificationEvent(coordinator, entry, "notifications.navigation.anchor")
+
+    assert entity.suggested_object_id == "signalk_notifications_navigation_anchor"
 
 
 async def test_event_setup_skips_when_notifications_disabled(hass) -> None:

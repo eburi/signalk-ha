@@ -22,6 +22,7 @@ from .const import (
 )
 from .coordinator import SignalKCoordinator
 from .device_info import build_device_info
+from .entity_utils import build_object_id, entity_id_prefix_for_entry
 from .notifications import normalize_notification_paths, normalize_notification_prefixes
 
 
@@ -88,9 +89,15 @@ class SignalKNotificationEvent(CoordinatorEntity, EventEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._path = path
+        self._entity_id_prefix = entity_id_prefix_for_entry(entry)
+        self._suggested_object_id = build_object_id(path, prefix=self._entity_id_prefix)
         self._attr_unique_id = f"signalk:{entry.entry_id}:{path}"
         self._attr_name = _notification_name(path)
         self._attr_device_info = build_device_info(entry)
+
+    @property
+    def suggested_object_id(self) -> str | None:
+        return self._suggested_object_id
 
     @property
     def available(self) -> bool:

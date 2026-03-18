@@ -19,6 +19,7 @@ CONF_NOTIFICATION_IGNORE_PREFIXES = "notification_ignore_prefixes"
 CONF_GROUPS = "groups"
 CONF_SERVER_ID = "server_id"
 CONF_SERVER_VERSION = "server_version"
+CONF_ENTITY_ID_PREFIX = "entity_id_prefix"
 
 DEFAULT_PORT = 3000
 DEFAULT_SSL = False
@@ -28,6 +29,7 @@ DEFAULT_ENABLE_NOTIFICATIONS = True
 DEFAULT_NOTIFICATION_PATHS: tuple[str, ...] = ("notifications.*",)
 DEFAULT_NOTIFICATION_IGNORE_PREFIXES: tuple[str, ...] = ("notifications.security.",)
 DEFAULT_GROUPS = ("navigation", "environment", "tanks")
+DEFAULT_ENTITY_ID_PREFIX = ""
 
 DEFAULT_PERIOD_MS = 5000
 DEFAULT_FORMAT = "delta"
