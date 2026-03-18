@@ -32,7 +32,7 @@ from .const import (
 from .coordinator import SignalKCoordinator, SignalKDiscoveryCoordinator
 from .device_info import build_device_info
 from .discovery import DiscoveredEntity, convert_value
-from .entity_utils import path_from_unique_id
+from .entity_utils import build_object_id, entity_id_prefix_for_entry, path_from_unique_id
 
 PARALLEL_UPDATES = 1
 
@@ -183,10 +183,16 @@ class SignalKBaseSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._discovery = discovery
+        self._entity_id_prefix = entity_id_prefix_for_entry(entry)
+        self._suggested_object_id: str | None = None
         self._attr_device_info = build_device_info(entry)
         self._last_native_value: Any = None
         self._last_write: float | None = None
         self._last_available: bool | None = None
+
+    @property
+    def suggested_object_id(self) -> str | None:
+        return self._suggested_object_id
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -255,6 +261,7 @@ class SignalKSensor(SignalKBaseSensor):
         self._spec = spec
         self._attr_name = spec.name
         self._attr_unique_id = f"signalk:{entry.entry_id}:{spec.path}"
+        self._suggested_object_id = build_object_id(spec.path, prefix=self._entity_id_prefix)
         self._last_seen_at: dt_util.dt | None = None
         if spec.device_class:
             self._attr_device_class = spec.device_class
@@ -338,6 +345,9 @@ class SignalKHealthSensor(SignalKBaseSensor):
         self._spec = spec
         self._attr_name = spec.name
         self._attr_unique_id = f"signalk:{entry.entry_id}:health:{spec.key}"
+        self._suggested_object_id = build_object_id(
+            f"health_{spec.key}", prefix=self._entity_id_prefix
+        )
         self._attr_entity_registry_enabled_default = spec.enabled_default
         if spec.device_class:
             self._attr_device_class = spec.device_class

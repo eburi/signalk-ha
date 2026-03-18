@@ -16,6 +16,7 @@ from custom_components.signalk_ha.config_flow import _admin_access_url
 from custom_components.signalk_ha.const import (
     CONF_ACCESS_TOKEN,
     CONF_BASE_URL,
+    CONF_ENTITY_ID_PREFIX,
     CONF_ENABLE_NOTIFICATIONS,
     CONF_GROUPS,
     CONF_HOST,
@@ -98,6 +99,47 @@ async def test_config_flow_creates_entry(hass, enable_custom_integrations) -> No
     assert result["data"][CONF_GROUPS] == list(DEFAULT_GROUPS)
     assert result["data"][CONF_SERVER_ID] == "signalk-server-node"
     assert result["data"][CONF_SERVER_VERSION] == "2.19.0"
+
+
+async def test_config_flow_entity_id_prefix_is_normalized(hass, enable_custom_integrations) -> None:
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+    assert result["type"] == FlowResultType.FORM
+
+    vessel_data = {"name": "ONA", "mmsi": "261006533"}
+    with (
+        patch(
+            "custom_components.signalk_ha.config_flow.async_fetch_discovery",
+            new=AsyncMock(return_value=_discovery_info()),
+        ),
+        patch(
+            "custom_components.signalk_ha.config_flow.async_fetch_vessel_self",
+            new=AsyncMock(return_value=vessel_data),
+        ),
+        patch(
+            "custom_components.signalk_ha.config_flow.async_get_clientsession",
+            return_value=AsyncMock(),
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_HOST: "sk.local",
+                CONF_PORT: 3000,
+                CONF_SSL: False,
+                CONF_VERIFY_SSL: True,
+                CONF_ENTITY_ID_PREFIX: " SignalK Prefix ",
+            },
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "notifications"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], NOTIFICATION_STEP_INPUT
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_ENTITY_ID_PREFIX] == "signalk_prefix_"
 
 
 async def test_config_flow_scheme_override(hass, enable_custom_integrations) -> None:

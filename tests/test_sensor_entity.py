@@ -9,6 +9,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.signalk_ha.auth import SignalKAuthManager
 from custom_components.signalk_ha.const import (
     CONF_BASE_URL,
+    CONF_ENTITY_ID_PREFIX,
     CONF_HOST,
     CONF_PORT,
     CONF_SSL,
@@ -105,6 +106,40 @@ def test_sensor_uses_spec_icon() -> None:
     sensor = SignalKSensor(coordinator, discovery, entry, spec)
 
     assert sensor.icon == "mdi:speedometer"
+
+
+def test_sensor_suggested_object_id_uses_configured_prefix() -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_HOST: "sk.local",
+            CONF_PORT: 3000,
+            CONF_SSL: False,
+            CONF_VERIFY_SSL: True,
+            CONF_BASE_URL: "http://sk.local:3000/signalk/v1/api/",
+            CONF_WS_URL: "ws://sk.local:3000/signalk/v1/stream?subscribe=none",
+            CONF_VESSEL_ID: "mmsi:261006533",
+            CONF_VESSEL_NAME: "ONA",
+            CONF_ENTITY_ID_PREFIX: "signalk_",
+        },
+    )
+    spec = DiscoveredEntity(
+        path="navigation.speedOverGround",
+        name="Speed Over Ground",
+        kind="sensor",
+        unit="kn",
+        device_class=None,
+        state_class=None,
+        conversion=None,
+        tolerance=None,
+        min_update_seconds=None,
+    )
+    discovery = SimpleNamespace(data=DiscoveryResult(entities=[spec], conflicts=[]))
+    coordinator = SignalKCoordinator(Mock(), entry, Mock(), Mock(), SignalKAuthManager(None))
+
+    sensor = SignalKSensor(coordinator, discovery, entry, spec)
+
+    assert sensor.suggested_object_id == "signalk_navigation_speedoverground"
 
 
 async def test_sensor_unavailable_when_disconnected(hass) -> None:
