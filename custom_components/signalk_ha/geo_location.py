@@ -24,6 +24,7 @@ from .const import (
 )
 from .coordinator import SignalKCoordinator, SignalKDiscoveryCoordinator
 from .device_info import build_device_info
+from .entity_utils import build_object_id, entity_id_prefix_for_entry
 
 PARALLEL_UPDATES = 1
 
@@ -84,6 +85,10 @@ class SignalKPositionGeolocation(CoordinatorEntity, GeolocationEvent):
         super().__init__(coordinator)
         self._entry = entry
         self._discovery = discovery
+        self._entity_id_prefix = entity_id_prefix_for_entry(entry)
+        self._suggested_object_id = build_object_id(
+            SK_PATH_POSITION, prefix=self._entity_id_prefix
+        )
         self._attr_device_info = build_device_info(entry)
         self._description = _position_description(discovery)
         self._spec_known = _position_spec_known(discovery)
@@ -94,6 +99,12 @@ class SignalKPositionGeolocation(CoordinatorEntity, GeolocationEvent):
         self._last_write: float | None = None
         self._last_available: bool | None = None
         self._last_seen_at: dt_util.dt | None = None
+
+    @property
+    def suggested_object_id(self) -> str | None:
+        if not self._entity_id_prefix:
+            return super().suggested_object_id
+        return self._suggested_object_id
 
     @property
     def available(self) -> bool:
