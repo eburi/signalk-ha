@@ -108,6 +108,28 @@ def test_sensor_uses_spec_icon() -> None:
     assert sensor.icon == "mdi:speedometer"
 
 
+def test_sensor_uses_suggested_display_precision_from_spec() -> None:
+    entry = _make_entry()
+    spec = DiscoveredEntity(
+        path="navigation.speedOverGround",
+        name="Speed Over Ground",
+        kind="sensor",
+        unit="kn",
+        device_class=None,
+        state_class=None,
+        conversion=None,
+        tolerance=None,
+        min_update_seconds=None,
+        suggested_display_precision=1,
+    )
+    discovery = SimpleNamespace(data=DiscoveryResult(entities=[spec], conflicts=[]))
+    coordinator = SignalKCoordinator(Mock(), entry, Mock(), Mock(), SignalKAuthManager(None))
+
+    sensor = SignalKSensor(coordinator, discovery, entry, spec)
+
+    assert sensor.suggested_display_precision == 1
+
+
 def test_sensor_suggested_object_id_uses_configured_prefix() -> None:
     entry = MockConfigEntry(
         domain=DOMAIN,
