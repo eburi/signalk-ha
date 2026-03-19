@@ -1,5 +1,6 @@
 from custom_components.signalk_ha.mapping import (
     Conversion,
+    angle_unit_for_path,
     apply_conversion,
     expected_units,
     lookup_mapping,
@@ -21,3 +22,18 @@ def test_lookup_mapping_expected_units() -> None:
     assert "m/s" in expected_units(mapping)
 
     assert lookup_mapping("navigation.unknown.path") is None
+
+
+def test_angle_units_and_display_names() -> None:
+    assert angle_unit_for_path("navigation.headingTrue") == "° T"
+    assert angle_unit_for_path("navigation.headingMagnetic") == "° M"
+    assert angle_unit_for_path("environment.wind.angleApparent") == "°"
+
+    sog = lookup_mapping("navigation.speedOverGround")
+    assert sog is not None
+    assert sog.display_name == "SOG"
+
+    gwd = lookup_mapping("environment.wind.directionTrue")
+    assert gwd is not None
+    assert gwd.display_name == "GWD"
+    assert gwd.unit == "° T"

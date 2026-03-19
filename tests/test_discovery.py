@@ -145,8 +145,64 @@ def test_discovery_disambiguates_duplicate_names() -> None:
     }
     result = discover_entities(data, scopes=("navigation", "environment"))
     names = {entity.path: entity.name for entity in result.entities}
-    assert names["navigation.speedOverGround"] == "Navigation Speed Over Ground"
-    assert names["environment.wind.speedOverGround"] == "Wind Speed Over Ground"
+    assert names["navigation.speedOverGround"] == "SOG"
+    assert names["environment.wind.speedOverGround"] == "GWS"
+
+
+def test_discovery_uses_marine_abbreviations_for_known_paths() -> None:
+    data = {
+        "navigation": {
+            "speedOverGround": {"value": 1.0, "meta": {"units": "m/s"}},
+            "courseOverGroundTrue": {"value": 1.0, "meta": {"units": "rad"}},
+        },
+        "environment": {
+            "wind": {
+                "speedApparent": {"value": 2.0, "meta": {"units": "m/s"}},
+                "directionTrue": {"value": 1.2, "meta": {"units": "rad"}},
+            }
+        },
+    }
+    result = discover_entities(data, scopes=("navigation", "environment"))
+    names = {entity.path: entity.name for entity in result.entities}
+    units = {entity.path: entity.unit for entity in result.entities}
+
+    assert names["navigation.speedOverGround"] == "SOG"
+    assert names["navigation.courseOverGroundTrue"] == "COG"
+    assert names["environment.wind.speedApparent"] == "AWS"
+    assert names["environment.wind.directionTrue"] == "GWD"
+    assert units["navigation.courseOverGroundTrue"] == "° T"
+    assert units["environment.wind.directionTrue"] == "° T"
+
+
+def test_discovery_uses_context_rich_fallback_names() -> None:
+    data = {
+        "environment": {
+            "inside": {
+                "engineRoom": {
+                    "pressure": {
+                        "value": 100000,
+                        "meta": {"units": "Pa"},
+                    }
+                }
+            }
+        },
+        "electrical": {
+            "batteries": {
+                "0": {
+                    "current": {
+                        "value": 12.3,
+                        "meta": {"units": "A"},
+                    }
+                }
+            }
+        },
+    }
+
+    result = discover_entities(data, scopes=("environment", "electrical"))
+    names = {entity.path: entity.name for entity in result.entities}
+
+    assert names["environment.inside.engineRoom.pressure"] == "Inside Engine Room Pressure"
+    assert names["electrical.batteries.0.current"] == "Batteries 0 Current"
 
 
 def test_discovery_meta_display_name_and_units() -> None:
