@@ -274,6 +274,8 @@ class SignalKSensor(SignalKBaseSensor):
             self._attr_native_unit_of_measurement = spec.unit
         if spec.icon:
             self._attr_icon = spec.icon
+        if spec.suggested_display_precision is not None:
+            self._attr_suggested_display_precision = spec.suggested_display_precision
 
     @property
     def available(self) -> bool:

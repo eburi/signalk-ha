@@ -84,6 +84,7 @@ class DiscoveredEntity:
     conversion: Conversion | None
     tolerance: float | None
     min_update_seconds: float | None
+    suggested_display_precision: int | None = None
     meta_units: str | None = None
     icon: str | None = None
     period_ms: int = DEFAULT_PERIOD_MS
@@ -212,6 +213,7 @@ def _add_entity(
     unit = mapping.unit if mapping else _unit_from_meta(path, units_hint, conversion)
     device_class = mapping.device_class if mapping else None
     state_class = mapping.state_class if mapping else None
+    suggested_display_precision = _suggested_display_precision(path, device_class, conversion, unit)
     tolerance = mapping.tolerance if mapping else _tolerance_from_meta(units_hint)
     min_update_seconds = mapping.min_update_seconds if mapping else None
     icon = _icon_for_path(path, device_class)
@@ -231,6 +233,7 @@ def _add_entity(
             conversion=conversion,
             tolerance=tolerance,
             min_update_seconds=min_update_seconds,
+            suggested_display_precision=suggested_display_precision,
             meta_units=meta_units,
             icon=icon,
             period_ms=period_ms,
@@ -379,6 +382,31 @@ def _tolerance_from_meta(meta_units: Any) -> float | None:
         return 0.5
     if units == "ratio":
         return 0.01
+    return None
+
+
+def _suggested_display_precision(
+    path: str,
+    device_class: SensorDeviceClass | None,
+    conversion: Conversion | None,
+    unit: str | None,
+) -> int | None:
+    unit_norm = unit.lower() if isinstance(unit, str) else ""
+    leaf = path.split(".")[-1].lower() if isinstance(path, str) else ""
+
+    if device_class == SensorDeviceClass.SPEED:
+        return 1
+    if unit_norm in {"kn", "knot", "kts", "m/s", "km/h"}:
+        return 1
+    if "speed" in leaf:
+        return 1
+
+    if device_class == getattr(SensorDeviceClass, "ANGLE", None):
+        return 0
+    if conversion == Conversion.RAD_TO_DEG:
+        return 0
+    if unit_norm.startswith("°") or unit_norm in {"deg", "degt", "degm"}:
+        return 0
     return None
 
 
