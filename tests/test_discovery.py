@@ -165,6 +165,7 @@ def test_discovery_uses_marine_abbreviations_for_known_paths() -> None:
     result = discover_entities(data, scopes=("navigation", "environment"))
     names = {entity.path: entity.name for entity in result.entities}
     units = {entity.path: entity.unit for entity in result.entities}
+    precisions = {entity.path: entity.suggested_display_precision for entity in result.entities}
 
     assert names["navigation.speedOverGround"] == "SOG"
     assert names["navigation.courseOverGroundTrue"] == "COG"
@@ -172,6 +173,32 @@ def test_discovery_uses_marine_abbreviations_for_known_paths() -> None:
     assert names["environment.wind.directionTrue"] == "GWD"
     assert units["navigation.courseOverGroundTrue"] == "° T"
     assert units["environment.wind.directionTrue"] == "° T"
+    assert precisions["navigation.speedOverGround"] == 1
+    assert precisions["navigation.courseOverGroundTrue"] == 0
+    assert precisions["environment.wind.directionTrue"] == 0
+
+
+def test_discovery_sets_default_precision_for_speed_and_angle() -> None:
+    data = {
+        "navigation": {
+            "rateOfTurn": {"value": 0.123, "meta": {"units": "rad"}},
+            "speedThroughWater": {"value": 3.3, "meta": {"units": "m/s"}},
+        },
+        "environment": {
+            "current": {
+                "setMagnetic": {"value": 1.0, "meta": {"units": "rad"}},
+            }
+        },
+    }
+
+    result = discover_entities(data, scopes=("navigation", "environment"))
+    precisions = {entity.path: entity.suggested_display_precision for entity in result.entities}
+    units = {entity.path: entity.unit for entity in result.entities}
+
+    assert precisions["navigation.speedThroughWater"] == 1
+    assert precisions["navigation.rateOfTurn"] == 0
+    assert precisions["environment.current.setMagnetic"] == 0
+    assert units["environment.current.setMagnetic"] == "° M"
 
 
 def test_discovery_uses_context_rich_fallback_names() -> None:
