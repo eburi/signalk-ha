@@ -22,6 +22,7 @@ class Conversion(str, Enum):
 
 @dataclass(frozen=True)
 class PathMapping:
+    display_name: str | None
     unit: str | None
     device_class: SensorDeviceClass | None
     state_class: SensorStateClass | None
@@ -32,8 +33,17 @@ class PathMapping:
     period_ms: int | None = None
 
 
+def angle_unit_for_path(path: str) -> str:
+    if path.endswith("True"):
+        return "° T"
+    if path.endswith("Magnetic"):
+        return "° M"
+    return "°"
+
+
 _EXACT_MAPPING: dict[str, PathMapping] = {
     "navigation.speedOverGround": PathMapping(
+        display_name="SOG",
         unit="kn",
         device_class=SensorDeviceClass.SPEED,
         state_class=SensorStateClass.MEASUREMENT,
@@ -42,6 +52,7 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.5,
     ),
     "navigation.speedThroughWater": PathMapping(
+        display_name="STW",
         unit="kn",
         device_class=SensorDeviceClass.SPEED,
         state_class=SensorStateClass.MEASUREMENT,
@@ -50,7 +61,8 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.2,
     ),
     "navigation.courseOverGroundTrue": PathMapping(
-        unit="deg",
+        display_name="COG",
+        unit=angle_unit_for_path("navigation.courseOverGroundTrue"),
         device_class=DEVICE_CLASS_ANGLE,
         state_class=SensorStateClass.MEASUREMENT,
         conversion=Conversion.RAD_TO_DEG,
@@ -58,7 +70,8 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.1,
     ),
     "navigation.courseOverGroundMagnetic": PathMapping(
-        unit="deg",
+        display_name="COG Magnetic",
+        unit=angle_unit_for_path("navigation.courseOverGroundMagnetic"),
         device_class=DEVICE_CLASS_ANGLE,
         state_class=SensorStateClass.MEASUREMENT,
         conversion=Conversion.RAD_TO_DEG,
@@ -66,7 +79,8 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.1,
     ),
     "navigation.headingTrue": PathMapping(
-        unit="deg",
+        display_name="HDT",
+        unit=angle_unit_for_path("navigation.headingTrue"),
         device_class=DEVICE_CLASS_ANGLE,
         state_class=SensorStateClass.MEASUREMENT,
         conversion=Conversion.RAD_TO_DEG,
@@ -74,7 +88,8 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.1,
     ),
     "navigation.headingMagnetic": PathMapping(
-        unit="deg",
+        display_name="HDM",
+        unit=angle_unit_for_path("navigation.headingMagnetic"),
         device_class=DEVICE_CLASS_ANGLE,
         state_class=SensorStateClass.MEASUREMENT,
         conversion=Conversion.RAD_TO_DEG,
@@ -82,6 +97,7 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.1,
     ),
     "environment.depth.belowTransducer": PathMapping(
+        display_name="DBT",
         unit="m",
         device_class=DEVICE_CLASS_DEPTH,
         state_class=SensorStateClass.MEASUREMENT,
@@ -90,6 +106,7 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.5,
     ),
     "environment.depth.belowSurface": PathMapping(
+        display_name="DBS",
         unit="m",
         device_class=DEVICE_CLASS_DEPTH,
         state_class=SensorStateClass.MEASUREMENT,
@@ -98,6 +115,7 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.5,
     ),
     "environment.depth.belowKeel": PathMapping(
+        display_name="DBK",
         unit="m",
         device_class=DEVICE_CLASS_DEPTH,
         state_class=SensorStateClass.MEASUREMENT,
@@ -106,6 +124,7 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.5,
     ),
     "environment.wind.speedApparent": PathMapping(
+        display_name="AWS",
         unit="kn",
         device_class=SensorDeviceClass.SPEED,
         state_class=SensorStateClass.MEASUREMENT,
@@ -114,6 +133,7 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.5,
     ),
     "environment.wind.speedTrue": PathMapping(
+        display_name="TWS",
         unit="kn",
         device_class=SensorDeviceClass.SPEED,
         state_class=SensorStateClass.MEASUREMENT,
@@ -122,6 +142,7 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.5,
     ),
     "environment.wind.speedOverGround": PathMapping(
+        display_name="GWS",
         unit="kn",
         device_class=SensorDeviceClass.SPEED,
         state_class=SensorStateClass.MEASUREMENT,
@@ -130,7 +151,8 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.5,
     ),
     "environment.wind.angleApparent": PathMapping(
-        unit="deg",
+        display_name="AWA",
+        unit=angle_unit_for_path("environment.wind.angleApparent"),
         device_class=DEVICE_CLASS_ANGLE,
         state_class=SensorStateClass.MEASUREMENT,
         conversion=Conversion.RAD_TO_DEG,
@@ -138,7 +160,8 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.1,
     ),
     "environment.wind.angleTrueWater": PathMapping(
-        unit="deg",
+        display_name="TWA",
+        unit=angle_unit_for_path("environment.wind.angleTrueWater"),
         device_class=DEVICE_CLASS_ANGLE,
         state_class=SensorStateClass.MEASUREMENT,
         conversion=Conversion.RAD_TO_DEG,
@@ -146,7 +169,26 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.1,
     ),
     "environment.wind.angleTrueGround": PathMapping(
-        unit="deg",
+        display_name="TWA Ground",
+        unit=angle_unit_for_path("environment.wind.angleTrueGround"),
+        device_class=DEVICE_CLASS_ANGLE,
+        state_class=SensorStateClass.MEASUREMENT,
+        conversion=Conversion.RAD_TO_DEG,
+        expected_units=("rad",),
+        tolerance=0.1,
+    ),
+    "environment.wind.directionTrue": PathMapping(
+        display_name="GWD",
+        unit=angle_unit_for_path("environment.wind.directionTrue"),
+        device_class=DEVICE_CLASS_ANGLE,
+        state_class=SensorStateClass.MEASUREMENT,
+        conversion=Conversion.RAD_TO_DEG,
+        expected_units=("rad",),
+        tolerance=0.1,
+    ),
+    "environment.wind.directionMagnetic": PathMapping(
+        display_name="GWD Magnetic",
+        unit=angle_unit_for_path("environment.wind.directionMagnetic"),
         device_class=DEVICE_CLASS_ANGLE,
         state_class=SensorStateClass.MEASUREMENT,
         conversion=Conversion.RAD_TO_DEG,
@@ -154,6 +196,7 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         tolerance=0.1,
     ),
     "tanks.freshWater.0.currentLevel": PathMapping(
+        display_name=None,
         unit="%",
         device_class=None,
         state_class=SensorStateClass.MEASUREMENT,

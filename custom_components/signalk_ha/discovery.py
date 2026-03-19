@@ -9,7 +9,7 @@ from typing import Any, Iterable
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 
 from .const import DEFAULT_PERIOD_MS, DEFAULT_POSITION_TOLERANCE_M, SK_PATH_POSITION
-from .mapping import Conversion, apply_conversion, lookup_mapping
+from .mapping import Conversion, angle_unit_for_path, apply_conversion, lookup_mapping
 from .schema import SCHEMA_GROUPS, lookup_schema
 
 _RESERVED_KEYS = {
@@ -148,8 +148,12 @@ def _add_entity(
     conflicts: list[MetadataConflict],
 ) -> None:
     value = node.get("value")
-    meta = node.get("meta") if isinstance(node.get("meta"), dict) else {}
-    meta_units = meta.get("units") if isinstance(meta, dict) else None
+    meta: dict[str, Any]
+    if isinstance(node.get("meta"), dict):
+        meta = node["meta"]
+    else:
+        meta = {}
+    meta_units = meta.get("units")
     schema_info = lookup_schema(path)
     schema_units = schema_info.units if schema_info else None
     schema_description = schema_info.description if schema_info else None
@@ -202,10 +206,10 @@ def _add_entity(
                 )
             )
 
-    name = _display_name(path, meta)
+    name = _display_name(path, meta, mapping_name=mapping.display_name if mapping else None)
     units_hint = schema_units or meta_units
     conversion = mapping.conversion if mapping else _conversion_from_meta(path, units_hint)
-    unit = mapping.unit if mapping else _unit_from_meta(units_hint, conversion)
+    unit = mapping.unit if mapping else _unit_from_meta(path, units_hint, conversion)
     device_class = mapping.device_class if mapping else None
     state_class = mapping.state_class if mapping else None
     tolerance = mapping.tolerance if mapping else _tolerance_from_meta(units_hint)
@@ -236,13 +240,42 @@ def _add_entity(
     )
 
 
-def _display_name(path: str, meta: dict[str, Any]) -> str:
+def _display_name(path: str, meta: dict[str, Any], *, mapping_name: str | None = None) -> str:
+    if mapping_name:
+        return mapping_name
     for key in ("displayName", "shortName"):
         value = meta.get(key)
         if isinstance(value, str) and value.strip():
             return value.strip()
-    last = path.split(".")[-1]
-    return _humanize_segment(last)
+    return _name_from_path(path)
+
+
+def _name_from_path(path: str) -> str:
+    parts = path.split(".")
+    if not parts:
+        return ""
+    last = _humanize_segment(parts[-1])
+    context_parts = _prefix_parts_for_name(path)
+    if not context_parts:
+        return last
+    context = _humanize_parts(context_parts)
+    if not context:
+        return last
+    return f"{context} {last}"
+
+
+def _prefix_parts_for_name(path: str) -> list[str]:
+    parts = path.split(".")
+    if len(parts) < 2:
+        return []
+    context = [part for part in parts[:-1] if part and part not in _GENERIC_PREFIXES]
+    if not context:
+        return []
+    if len(context) >= 2 and context[-1].isdigit():
+        return [context[-2], context[-1]]
+    if context[-1].isdigit():
+        return [context[-1]]
+    return context
 
 
 def _humanize_segment(segment: str) -> str:
@@ -307,13 +340,15 @@ def _prefix_parts_for_path(path: str) -> list[str]:
     return [prefix_parts[-1]] if prefix_parts else []
 
 
-def _unit_from_meta(meta_units: Any, conversion: Conversion | None) -> str | None:
+def _unit_from_meta(path: str, meta_units: Any, conversion: Conversion | None) -> str | None:
     if conversion == Conversion.K_TO_C:
         return "degC"
     if conversion == Conversion.PA_TO_HPA:
         return "hPa"
     if conversion == Conversion.RATIO_TO_PERCENT:
         return "%"
+    if conversion == Conversion.RAD_TO_DEG:
+        return angle_unit_for_path(path)
     return str(meta_units) if isinstance(meta_units, str) and meta_units else None
 
 
@@ -329,6 +364,8 @@ def _conversion_from_meta(path: str, meta_units: Any) -> Conversion | None:
         return Conversion.RATIO_TO_PERCENT
     if units == "ratio" and path.endswith("currentLevel"):
         return Conversion.RATIO_TO_PERCENT
+    if units == "rad":
+        return Conversion.RAD_TO_DEG
     return None
 
 
