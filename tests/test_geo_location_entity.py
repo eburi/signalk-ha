@@ -10,6 +10,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.signalk_ha.auth import SignalKAuthManager
 from custom_components.signalk_ha.const import (
     CONF_BASE_URL,
+    CONF_ENTITY_ID_PREFIX,
     CONF_HOST,
     CONF_PORT,
     CONF_SSL,
@@ -90,6 +91,49 @@ async def test_geo_location_updates(hass, enable_custom_integrations) -> None:
     assert attrs["description"] == "Vessel position"
     assert attrs["source"] == "src1"
     assert attrs["spec_known"] is True
+
+
+async def test_geo_location_suggested_object_id_uses_configured_prefix(
+    hass, enable_custom_integrations
+) -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_HOST: "sk.local",
+            CONF_PORT: 3000,
+            CONF_SSL: False,
+            CONF_VERIFY_SSL: True,
+            CONF_BASE_URL: "http://sk.local:3000/signalk/v1/api/",
+            CONF_WS_URL: "ws://sk.local:3000/signalk/v1/stream?subscribe=none",
+            CONF_VESSEL_ID: "mmsi:261006533",
+            CONF_VESSEL_NAME: "ONA",
+            CONF_ENTITY_ID_PREFIX: "signalk_",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    discovery = SimpleNamespace(data=DiscoveryResult(entities=[], conflicts=[]))
+    coordinator = SignalKCoordinator(hass, entry, Mock(), Mock(), SignalKAuthManager(None))
+    coordinator._state = ConnectionState.CONNECTED
+
+    geo = SignalKPositionGeolocation(coordinator, discovery, entry)
+
+    assert geo.suggested_object_id == "signalk_navigation_position"
+
+
+async def test_geo_location_suggested_object_id_uses_default_when_prefix_empty(
+    hass, enable_custom_integrations
+) -> None:
+    entry = _make_entry()
+    entry.add_to_hass(hass)
+
+    discovery = SimpleNamespace(data=DiscoveryResult(entities=[], conflicts=[]))
+    coordinator = SignalKCoordinator(hass, entry, Mock(), Mock(), SignalKAuthManager(None))
+    coordinator._state = ConnectionState.CONNECTED
+
+    geo = SignalKPositionGeolocation(coordinator, discovery, entry)
+
+    assert geo.suggested_object_id == "Position"
 
 
 async def test_geo_location_unavailable_when_stale(hass, enable_custom_integrations) -> None:

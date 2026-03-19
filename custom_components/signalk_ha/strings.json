@@ -10,7 +10,8 @@
           "port": "Port",
           "ssl": "Use TLS (https/wss)",
           "verify_ssl": "Ignore certificate errors",
-          "groups": "Data groups to include"
+          "groups": "Data groups to include",
+          "entity_id_prefix": "Entity ID prefix (optional)"
         }
       },
       "notifications": {

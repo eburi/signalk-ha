@@ -31,6 +31,7 @@ from .const import (
     CONF_ACCESS_TOKEN,
     CONF_BASE_URL,
     CONF_ENABLE_NOTIFICATIONS,
+    CONF_ENTITY_ID_PREFIX,
     CONF_GROUPS,
     CONF_HOST,
     CONF_INSTANCE_ID,
@@ -46,6 +47,7 @@ from .const import (
     CONF_VESSEL_NAME,
     CONF_WS_URL,
     DEFAULT_ENABLE_NOTIFICATIONS,
+    DEFAULT_ENTITY_ID_PREFIX,
     DEFAULT_GROUPS,
     DEFAULT_NOTIFICATION_IGNORE_PREFIXES,
     DEFAULT_NOTIFICATION_PATHS,
@@ -56,6 +58,7 @@ from .const import (
     DOMAIN,
 )
 from .identity import build_instance_id, resolve_vessel_identity
+from .entity_utils import normalize_entity_id_prefix
 from .notifications import (
     normalize_notification_paths,
     normalize_notification_prefixes,
@@ -94,6 +97,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             port = port_override or user_input[CONF_PORT]
             use_ssl = user_input[CONF_SSL]
             verify_ssl = not user_input[CONF_VERIFY_SSL]
+            entity_id_prefix = normalize_entity_id_prefix(user_input.get(CONF_ENTITY_ID_PREFIX))
             if scheme_override in ("http", "https"):
                 use_ssl = scheme_override == "https"
 
@@ -147,6 +151,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             CONF_SERVER_ID: discovery.server_id,
                             CONF_SERVER_VERSION: discovery.server_version,
                             CONF_GROUPS: groups,
+                            CONF_ENTITY_ID_PREFIX: entity_id_prefix,
                         }
                         self._access_request = access_request
                         self._auth_task = None
@@ -173,6 +178,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         vessel_data=vessel_data,
                         access_token=None,
                         groups=groups,
+                        entity_id_prefix=entity_id_prefix,
                         server_id=discovery.server_id,
                         server_version=discovery.server_version,
                     )
@@ -192,6 +198,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_GROUPS,
                     default=defaults.get(CONF_GROUPS, list(DEFAULT_GROUPS)),
                 ): cv.multi_select(group_options),
+                vol.Optional(
+                    CONF_ENTITY_ID_PREFIX,
+                    default=defaults.get(CONF_ENTITY_ID_PREFIX, DEFAULT_ENTITY_ID_PREFIX),
+                ): cv.string,
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
@@ -227,6 +237,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_SSL: use_ssl,
             CONF_VERIFY_SSL: not DEFAULT_VERIFY_SSL,
             CONF_GROUPS: list(DEFAULT_GROUPS),
+            CONF_ENTITY_ID_PREFIX: DEFAULT_ENTITY_ID_PREFIX,
         }
         # Zeroconf is a convenience path; if TLS fails, retry once with verification off.
         self._allow_ssl_fallback = True
@@ -311,6 +322,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vessel_data=vessel_data,
                     access_token=token,
                     groups=_normalize_groups(self._pending_data.get(CONF_GROUPS)),
+                    entity_id_prefix=normalize_entity_id_prefix(
+                        self._pending_data.get(CONF_ENTITY_ID_PREFIX)
+                    ),
                     server_id=self._pending_data.get(CONF_SERVER_ID),
                     server_version=self._pending_data.get(CONF_SERVER_VERSION),
                 )
@@ -324,6 +338,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vessel_data=vessel_data,
                 access_token=token,
                 groups=_normalize_groups(self._pending_data.get(CONF_GROUPS)),
+                entity_id_prefix=normalize_entity_id_prefix(
+                    self._pending_data.get(CONF_ENTITY_ID_PREFIX)
+                ),
                 server_id=self._pending_data.get(CONF_SERVER_ID),
                 server_version=self._pending_data.get(CONF_SERVER_VERSION),
             )
@@ -361,6 +378,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vessel_data=self._pending_vessel_data,
                 access_token=self._pending_access_token,
                 groups=_normalize_groups(self._pending_data.get(CONF_GROUPS)),
+                entity_id_prefix=normalize_entity_id_prefix(
+                    self._pending_data.get(CONF_ENTITY_ID_PREFIX)
+                ),
                 server_id=self._pending_data.get(CONF_SERVER_ID),
                 server_version=self._pending_data.get(CONF_SERVER_VERSION),
                 notification_options=options,
@@ -420,6 +440,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_BASE_URL: base_url,
             CONF_WS_URL: ws_url,
             CONF_GROUPS: data.get(CONF_GROUPS),
+            CONF_ENTITY_ID_PREFIX: data.get(CONF_ENTITY_ID_PREFIX, DEFAULT_ENTITY_ID_PREFIX),
             CONF_SERVER_ID: data.get(CONF_SERVER_ID),
             CONF_SERVER_VERSION: data.get(CONF_SERVER_VERSION),
         }
@@ -469,6 +490,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         vessel_data: dict[str, Any],
         access_token: str | None,
         groups: list[str],
+        entity_id_prefix: str,
         server_id: str | None,
         server_version: str | None,
     ) -> FlowResult:
@@ -480,6 +502,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_BASE_URL: base_url,
             CONF_WS_URL: ws_url,
             CONF_GROUPS: groups,
+            CONF_ENTITY_ID_PREFIX: entity_id_prefix,
             CONF_SERVER_ID: server_id,
             CONF_SERVER_VERSION: server_version,
         }
@@ -499,6 +522,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         vessel_data: dict[str, Any],
         access_token: str | None,
         groups: list[str],
+        entity_id_prefix: str,
         server_id: str | None,
         server_version: str | None,
         notification_options: dict[str, Any] | None = None,
@@ -524,6 +548,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_SERVER_VERSION: server_version or "",
             CONF_REFRESH_INTERVAL_HOURS: DEFAULT_REFRESH_INTERVAL_HOURS,
             CONF_GROUPS: groups,
+            CONF_ENTITY_ID_PREFIX: entity_id_prefix,
         }
         if access_token:
             data[CONF_ACCESS_TOKEN] = access_token
