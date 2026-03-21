@@ -201,6 +201,36 @@ def test_discovery_sets_default_precision_for_speed_and_angle() -> None:
     assert units["environment.current.setMagnetic"] == "° M"
 
 
+def test_discovery_uses_compass_unit_from_schema_description() -> None:
+    data = {
+        "navigation": {
+            "headingCompass": {"value": 1.0, "meta": {"units": "rad"}},
+        }
+    }
+
+    result = discover_entities(data, scopes=("navigation",))
+    entity = next(spec for spec in result.entities if spec.path == "navigation.headingCompass")
+
+    assert entity.unit == "° C"
+
+
+def test_discovery_wind_direction_has_no_state_class() -> None:
+    data = {
+        "environment": {
+            "wind": {
+                "directionTrue": {"value": 1.2, "meta": {"units": "rad"}},
+                "directionMagnetic": {"value": 1.2, "meta": {"units": "rad"}},
+            }
+        }
+    }
+
+    result = discover_entities(data, scopes=("environment",))
+    state_classes = {entity.path: entity.state_class for entity in result.entities}
+
+    assert state_classes["environment.wind.directionTrue"] is None
+    assert state_classes["environment.wind.directionMagnetic"] is None
+
+
 def test_discovery_uses_context_rich_fallback_names() -> None:
     data = {
         "environment": {

@@ -33,11 +33,40 @@ class PathMapping:
     period_ms: int | None = None
 
 
-def angle_unit_for_path(path: str) -> str:
-    if path.endswith("True"):
+def angle_unit_for_path(path: str, description: str | None = None) -> str:
+    path_lower = path.lower()
+    description_lower = description.lower() if isinstance(description, str) else ""
+
+    if "compass" in path_lower or "compass" in description_lower:
+        return "° C"
+
+    if (
+        "headingtrue" in path_lower
+        or "bearingtrue" in path_lower
+        or "bearingtracktrue" in path_lower
+        or "courseovergroundtrue" in path_lower
+        or "settrue" in path_lower
+        or " true north" in description_lower
+        or "relative to north" in description_lower
+    ):
         return "° T"
-    if path.endswith("Magnetic"):
+
+    if (
+        "headingmagnetic" in path_lower
+        or "bearingmagnetic" in path_lower
+        or "bearingtrackmagnetic" in path_lower
+        or "courseovergroundmagnetic" in path_lower
+        or "setmagnetic" in path_lower
+        or "magnetic north" in description_lower
+    ):
         return "° M"
+
+    if "directiontrue" in path_lower:
+        return "° T"
+
+    if "directionmagnetic" in path_lower:
+        return "° M"
+
     return "°"
 
 
@@ -89,7 +118,10 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
     ),
     "navigation.headingMagnetic": PathMapping(
         display_name="HDM",
-        unit=angle_unit_for_path("navigation.headingMagnetic"),
+        unit=angle_unit_for_path(
+            "navigation.headingMagnetic",
+            "Current magnetic heading of the vessel, equals headingCompass adjusted for magneticDeviation",
+        ),
         device_class=DEVICE_CLASS_ANGLE,
         state_class=SensorStateClass.MEASUREMENT,
         conversion=Conversion.RAD_TO_DEG,
@@ -181,7 +213,7 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         display_name="GWD",
         unit=angle_unit_for_path("environment.wind.directionTrue"),
         device_class=DEVICE_CLASS_ANGLE,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=None,
         conversion=Conversion.RAD_TO_DEG,
         expected_units=("rad",),
         tolerance=0.1,
@@ -190,7 +222,7 @@ _EXACT_MAPPING: dict[str, PathMapping] = {
         display_name="GWD Magnetic",
         unit=angle_unit_for_path("environment.wind.directionMagnetic"),
         device_class=DEVICE_CLASS_ANGLE,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=None,
         conversion=Conversion.RAD_TO_DEG,
         expected_units=("rad",),
         tolerance=0.1,
