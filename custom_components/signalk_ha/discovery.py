@@ -351,7 +351,9 @@ def _unit_from_meta(path: str, meta_units: Any, conversion: Conversion | None) -
     if conversion == Conversion.RATIO_TO_PERCENT:
         return "%"
     if conversion == Conversion.RAD_TO_DEG:
-        return angle_unit_for_path(path)
+        schema_info = lookup_schema(path)
+        schema_description = schema_info.description if schema_info else None
+        return angle_unit_for_path(path, schema_description)
     return str(meta_units) if isinstance(meta_units, str) and meta_units else None
 
 

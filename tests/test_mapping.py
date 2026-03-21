@@ -27,6 +27,7 @@ def test_lookup_mapping_expected_units() -> None:
 def test_angle_units_and_display_names() -> None:
     assert angle_unit_for_path("navigation.headingTrue") == "° T"
     assert angle_unit_for_path("navigation.headingMagnetic") == "° M"
+    assert angle_unit_for_path("navigation.headingCompass") == "° C"
     assert angle_unit_for_path("environment.wind.angleApparent") == "°"
 
     sog = lookup_mapping("navigation.speedOverGround")
@@ -37,3 +38,4 @@ def test_angle_units_and_display_names() -> None:
     assert gwd is not None
     assert gwd.display_name == "GWD"
     assert gwd.unit == "° T"
+    assert gwd.state_class is None
