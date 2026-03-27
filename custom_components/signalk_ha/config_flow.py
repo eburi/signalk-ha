@@ -62,8 +62,8 @@ from .const import (
     DEFAULT_VERIFY_SSL,
     DOMAIN,
 )
-from .identity import build_instance_id, resolve_vessel_identity
 from .entity_utils import normalize_entity_id_prefix
+from .identity import build_instance_id, resolve_vessel_identity
 from .notifications import (
     normalize_notification_paths,
     normalize_notification_prefixes,
